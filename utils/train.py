@@ -21,10 +21,12 @@ def num_params(model, print_out=True):
         print('Trainable Parameters: %.3fM' % parameters)
 
 def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, hp_str):
-    model_g = Generator(hp.audio.n_mel_channels).cuda()
+    model_g = Generator(input_channel=hp.audio.n_mel_channels,
+                        hu=hp.model.disc_out, 
+                        ku=hp.model.generator_kernel_sizes).cuda()
     model_d = MultiScaleDiscriminator(hp.model.num_D, hp.model.ndf, hp.model.n_layers,
                                       hp.model.downsampling_factor, hp.model.disc_out).cuda()
-    model_d_mpd = MPD().cuda()
+    model_d_mpd = MPD(hp.model.discriminator_periods).cuda()
 
     optim_g = torch.optim.AdamW(model_g.parameters(),
                                lr=hp.train.adam.lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))

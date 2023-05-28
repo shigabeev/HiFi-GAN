@@ -7,17 +7,12 @@ import numpy as np
 from utils.stft import TacotronSTFT
 from utils.hparams import HParam
 from utils.utils import read_wav_np
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
 
 
 def main(hp, args):
-    stft = TacotronSTFT(filter_length=hp.audio.filter_length,
-                        hop_length=hp.audio.hop_length,
-                        win_length=hp.audio.win_length,
-                        n_mel_channels=hp.audio.n_mel_channels,
-                        sampling_rate=hp.audio.sampling_rate,
-                        mel_fmin=hp.audio.mel_fmin,
-                        mel_fmax=hp.audio.mel_fmax)
-
+    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-xlsr-53-espeak-cv-ft")
+    model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-xlsr-53-espeak-cv-ft").cpu()
     wav_files = glob.glob(os.path.join(args.data_path, '**', '*.wav'), recursive=True)
     mel_path = hp.data.mel_path
 
@@ -33,13 +28,14 @@ def main(hp, args):
             wav = np.pad(wav, (0, hp.audio.segment_length + hp.audio.pad_short - len(wav)), \
                     mode='constant', constant_values=0.0)
 
-        wav = torch.from_numpy(wav).unsqueeze(0)
-        mel = stft.mel_spectrogram(wav)  # mel [1, num_mel, T]
+        wav = torch.from_numpy(wav)
+        input_values = processor(wav, sampling_rate=16000, return_tensors="pt").input_values.cpu()
+        with torch.no_grad():
+            mel = model(input_values).logits[0].T.cpu()
+            mel /= 12 # normalize to ~(-1;1)
 
-        mel = mel.squeeze(0)  # [num_mel, T]
         id = os.path.basename(wavpath).split(".")[0]
         np.save('{}/{}.npy'.format(mel_path, id), mel.numpy(), allow_pickle=False)
-        #torch.save(mel, melpath)
 
 
 if __name__ == '__main__':

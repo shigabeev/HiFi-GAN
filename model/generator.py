@@ -45,9 +45,10 @@ class Generator(nn.Module):
     
     def __init__(self, input_channel=80, hu=512, ku=[16, 16, 4, 4], kr=[3, 7, 11], Dr=[1, 3, 5]):
         super(Generator, self).__init__()
+        self.input_channel = input_channel
         self.input = nn.Sequential(
             nn.ReflectionPad1d(3),
-            nn.utils.weight_norm(nn.Conv1d(input_channel, hu, kernel_size=7))
+            nn.utils.weight_norm(nn.Conv1d(self.input_channel, hu, kernel_size=7))
         )
 
         generator = []

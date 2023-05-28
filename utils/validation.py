@@ -26,7 +26,9 @@ def validate(hp, generator, discriminator, model_d_mpd, valloader, stft_loss, l1
         loss_g = sc_loss + mag_loss
 
         mel_fake = stft.mel_spectrogram(fake_audio[:, :, :audio.size(2)].squeeze(1))
-        loss_mel = l1loss(mel[:, :, :mel_fake.size(2)], mel_fake.cuda())
+        mel_shape = min(mel_fake.size(2), mel.size(2))
+
+        loss_mel = l1loss(mel[:, :, :mel_shape], mel_fake[:, :, :mel_shape].cuda())
         loss_g += hp.model.lambda_mel * loss_mel
 
         # MSD Losses

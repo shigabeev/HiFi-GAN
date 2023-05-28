@@ -27,7 +27,9 @@ def main(args):
     else:
         hp = load_hparam_str(checkpoint['hp_str'])
 
-    model = Generator(hp.audio.n_mel_channels).cuda()
+    model = Generator(input_channel=hp.audio.n_mel_channels,
+                    hu=hp.model.disc_out, 
+                    ku=hp.model.generator_kernel_sizes).cuda()
 
     model.load_state_dict(checkpoint['model_g'])
     model.eval()

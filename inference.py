@@ -12,13 +12,15 @@ from denoiser import Denoiser
 MAX_WAV_VALUE = 32768.0
 
 def main(args):
-    checkpoint = torch.load(args.checkpoint_path)
+    checkpoint = torch.load(args.checkpoint_path, map_location="cpu")
     if args.config is not None:
         hp = HParam(args.config)
     else:
         hp = load_hparam_str(checkpoint['hp_str'])
 
-    model = Generator(hp.audio.n_mel_channels).cuda()
+    model = Generator(input_channel=hp.audio.n_mel_channels,
+                    hu=hp.model.disc_out, 
+                    ku=hp.model.generator_kernel_sizes).cpu()
 
     model.load_state_dict(checkpoint['model_g'])
     model.eval(inference=True)
@@ -27,13 +29,13 @@ def main(args):
         mel = torch.from_numpy(np.load(args.input))
         if len(mel.shape) == 2:
             mel = mel.unsqueeze(0)
-        mel = mel.cuda()
+        mel = mel.cpu()
         audio = model.inference(mel)
         # For multi-band inference
         print(audio.shape)
         audio = audio.squeeze(0)  # collapse all dimension except time axis
         if args.d:
-            denoiser = Denoiser(model).cuda()
+            denoiser = Denoiser(model).cpu()
             audio = denoiser(audio, 0.1)
         audio = audio.squeeze()
         audio = audio[:-(hp.audio.hop_length*10)]
